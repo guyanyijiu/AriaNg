@@ -10,12 +10,12 @@ var saveLicense = require('uglify-save-license');
 var $ = gulpLoadPlugins();
 var reload = browserSync.reload;
 
-gulp.task('clean', del.bind(null, ['.tmp', 'dist']));
+gulp.task('clean', del.bind(null, ['.tmp', 'dist/*', '!dist/.gitignore']));
 
 gulp.task('lint', function () {
     return gulp.src([
         'src/scripts/**/*.js'
-    ]).pipe(reload({stream: true, once: true}))
+    ]).pipe(reload({ stream: true, once: true }))
         .pipe($.eslint.format())
         .pipe($.if(!browserSync.active, $.eslint.failAfterError()))
         .pipe(gulp.dest('src/scripts'));
@@ -50,40 +50,40 @@ gulp.task('prepare-styles', function () {
         'src/styles/**/*.css'
     ]).pipe($.autoprefixer())
         .pipe(gulp.dest('.tmp/styles'))
-        .pipe(reload({stream: true}));
+        .pipe(reload({ stream: true }));
 });
 
 gulp.task('prepare-scripts', function () {
     return gulp.src([
         'src/scripts/**/*.js'
     ]).pipe($.plumber())
-        .pipe($.injectVersion({replace: '${ARIANG_VERSION}'}))
+        .pipe($.injectVersion({ replace: '${ARIANG_VERSION}' }))
         .pipe($.replace(/\${ARIANG_BUILD_COMMIT}/g, tryFn(git.short) || 'Local'))
         .pipe(gulp.dest('.tmp/scripts'))
-        .pipe(reload({stream: true}));
+        .pipe(reload({ stream: true }));
 });
 
 gulp.task('prepare-views', function () {
     return gulp.src([
         'src/views/**/*.html'
-    ]).pipe($.htmlmin({collapseWhitespace: true}))
-        .pipe($.angularTemplatecache({module: 'ariaNg', filename: 'views/templates.js', root: 'views/'}))
+    ]).pipe($.htmlmin({ collapseWhitespace: true }))
+        .pipe($.angularTemplatecache({ module: 'ariaNg', filename: 'views/templates.js', root: 'views/' }))
         .pipe(gulp.dest('.tmp/scripts'));
 });
 
 gulp.task('prepare-html', ['prepare-styles', 'prepare-scripts', 'prepare-views'], function () {
     return gulp.src([
         'src/*.html'
-    ]).pipe($.useref({searchPath: ['.tmp', 'src', '.']}))
+    ]).pipe($.useref({ searchPath: ['.tmp', 'src', '.'] }))
         .pipe($.if('js/*.js', $.replace(/\/\/# sourceMappingURL=.*/g, '')))
         .pipe($.if('css/*.css', $.replace(/\/\*# sourceMappingURL=.* \*\/$/g, '')))
-        .pipe($.if(['js/moment-with-locales-*.min.js', 'js/plugins.min.js', 'js/aria-ng.min.js'], $.uglify({output: {comments: saveLicense}})))
-        .pipe($.if(['css/plugins.min.css', 'css/aria-ng.min.css'], $.cssnano({safe: true, autoprefixer: false})))
-        .pipe($.replace(/url\((\.\.\/fonts\/[a-zA-Z0-9\-]+\.woff2)(\?[a-zA-Z0-9\-_=.]+)?\)/g, function(match, fileName) {
+        .pipe($.if(['js/moment-with-locales-*.min.js', 'js/plugins.min.js', 'js/aria-ng.min.js'], $.uglify({ output: { comments: saveLicense } })))
+        .pipe($.if(['css/plugins.min.css', 'css/aria-ng.min.css'], $.cssnano({ safe: true, autoprefixer: false })))
+        .pipe($.replace(/url\((\.\.\/fonts\/[a-zA-Z0-9\-]+\.woff2)(\?[a-zA-Z0-9\-_=.]+)?\)/g, function (match, fileName) {
             return 'url(' + fileName + ')'; // remove version of woff2 file (woff2 file should be cached via application cache)
         }))
         .pipe($.if(['js/plugins.min.js', 'js/aria-ng.min.js', 'css/plugins.min.css', 'css/aria-ng.min.css'], $.rev()))
-        .pipe($.if('*.html', $.htmlmin({collapseWhitespace: true})))
+        .pipe($.if('*.html', $.htmlmin({ collapseWhitespace: true })))
         .pipe($.revReplace())
         .pipe(gulp.dest('.tmp'));
 });
@@ -99,7 +99,7 @@ gulp.task('process-assets', ['process-html'], function () {
     return gulp.src([
         '.tmp/css/**/*',
         '.tmp/js/**/*'
-    ],{ base: '.tmp' })
+    ], { base: '.tmp' })
         .pipe(gulp.dest('dist'));
 });
 
@@ -111,15 +111,15 @@ gulp.task('prepare-assets-bundle', function () {
 
 gulp.task('process-assets-bundle', ['prepare-fonts', 'prepare-langs', 'prepare-html', 'prepare-assets-bundle'], function () {
     return gulp.src('.tmp/index.html')
-        .pipe($.replace(/<link rel="stylesheet" href="(css\/[a-zA-Z0-9\-_.]+\.css)">/g, function(match, fileName) {
+        .pipe($.replace(/<link rel="stylesheet" href="(css\/[a-zA-Z0-9\-_.]+\.css)">/g, function (match, fileName) {
             var content = fs.readFileSync('.tmp/' + fileName, 'utf8');
             return '<style type="text/css">' + content + '</style>';
         }))
-        .pipe($.replace(/<script src="(js\/[a-zA-Z0-9\-_.]+\.js)"><\/script>/g, function(match, fileName) {
+        .pipe($.replace(/<script src="(js\/[a-zA-Z0-9\-_.]+\.js)"><\/script>/g, function (match, fileName) {
             var content = fs.readFileSync('.tmp/' + fileName, 'utf8');
             return '<script type="application/javascript">' + content + '</script>';
         }))
-        .pipe($.replace(/url\(\.\.\/(fonts\/[a-zA-Z0-9\-]+\.woff)(\?[a-zA-Z0-9\-_=.]+)?\)/g, function(match, fileName) {
+        .pipe($.replace(/url\(\.\.\/(fonts\/[a-zA-Z0-9\-]+\.woff)(\?[a-zA-Z0-9\-_=.]+)?\)/g, function (match, fileName) {
             if (!fs.existsSync('.tmp/' + fileName)) {
                 return match;
             }
@@ -128,7 +128,7 @@ gulp.task('process-assets-bundle', ['prepare-fonts', 'prepare-langs', 'prepare-h
             var contentBase64 = contentBuffer.toString('base64');
             return 'url(data:application/x-font-woff;base64,' + contentBase64 + ')';
         }))
-        .pipe($.replace(/<link rel="icon" href="([a-zA-Z0-9\-_.]+\.png)">/g, function(match, fileName) {
+        .pipe($.replace(/<link rel="icon" href="([a-zA-Z0-9\-_.]+\.png)">/g, function (match, fileName) {
             if (!fs.existsSync('.tmp/' + fileName)) {
                 return match;
             }
@@ -137,7 +137,7 @@ gulp.task('process-assets-bundle', ['prepare-fonts', 'prepare-langs', 'prepare-h
             var contentBase64 = contentBuffer.toString('base64');
             return '<link rel="icon" href="data:image/png;base64,' + contentBase64 + '">';
         }))
-        .pipe($.replace('<!-- AriaNg-Bundle:languages -->', function() {
+        .pipe($.replace('<!-- AriaNg-Bundle:languages -->', function () {
             var langDir = '.tmp/langs/';
             var result = '';
             var fileNames = fs.readdirSync(langDir, 'utf8');
@@ -188,7 +188,7 @@ gulp.task('process-tiny-extras', function () {
 gulp.task('info', function () {
     return gulp.src([
         'dist/**/*'
-    ]).pipe($.size({title: 'build', gzip: true}));
+    ]).pipe($.size({ title: 'build', gzip: true }));
 });
 
 gulp.task('build', $.sequence('lint', 'process-fonts', 'process-langs', 'process-assets', 'process-full-extras', 'info'));
